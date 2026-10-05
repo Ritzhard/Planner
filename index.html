@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>Skill Tree Build Planner</title>
+<title>Build Planner</title>
 <style>
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -89,7 +89,7 @@ details.sk .body{display:flex;gap:10px;padding:2px 10px 10px;font-size:14px;line
 .ftab{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
 .ftab td,.ftab th{border:1px solid #232838;padding:5px 8px;text-align:left;vertical-align:top}
 #summary{position:sticky;top:calc(var(--hh,64px) + 12px);max-height:calc(100vh - var(--hh,64px) - 24px);overflow:auto;overscroll-behavior:contain;align-self:start;background:#151823;border:1px solid #232838;border-radius:10px;padding:14px;font-size:13px}
-@media(max-width:960px){#summary{position:static;max-height:none;overflow:visible}}
+@media(max-width:960px){#summary{position:relative;top:auto;max-height:none;overflow:visible}}
 #summary h3,.ccol h3{margin:0 0 8px;font-size:16px}
 .ep{color:#8b94ab;font-style:italic}
 .mtree{margin-top:10px;border-top:1px solid #232838;padding-top:8px}
@@ -113,6 +113,17 @@ details.sk .body{display:flex;gap:10px;padding:2px 10px 10px;font-size:14px;line
 .pcard.sel{border-color:#5aa7ff;outline:1px solid #5aa7ff}
 .pcard.dis{opacity:.4;cursor:not-allowed}
 .pcard .hint{font-size:11px;color:#8b94ab;margin-top:4px}
+.pcards{grid-template-columns:repeat(3,1fr)}
+@media(max-width:800px){.pcards{grid-template-columns:repeat(2,1fr)}}
+.pager{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pager button:disabled{opacity:.35;cursor:default}
+.pnums{display:flex;gap:4px}
+.pnum{min-width:32px;padding:4px 6px}
+.pnum.on{background:#5aa7ff;color:#0f1115;border-color:#5aa7ff;font-weight:700}
+#inpFlavor{flex:1 1 260px;min-height:0;margin:0;resize:vertical;line-height:1.35}
+.cflav{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:#aab1c2;white-space:pre-wrap;overflow-wrap:anywhere;border-left:2px solid #333a4f;padding-left:8px}
+.ccard.big .cflav{font-size:13.5px;margin-top:12px}
+
 .preview{border:1px solid #232838;border-radius:8px;padding:10px;background:#0f1115}
 .halves{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:8px}
 .half{border:1px solid #232838;border-radius:8px;padding:8px 10px;background:#151823}
@@ -123,6 +134,163 @@ details.sk .body{display:flex;gap:10px;padding:2px 10px 10px;font-size:14px;line
 .gl:hover,.gl.on{text-decoration-color:#5aa7ff;background:rgba(90,167,255,.12)}
 #gtip{position:fixed;z-index:100;max-width:min(320px,calc(100vw - 16px));background:#1b2030;border:1px solid #5aa7ff;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.45;color:#dfe3ea;box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:none;opacity:0;transition:opacity .1s}
 #gtip.show{opacity:1}
+.cpop{position:absolute;top:10px;right:10px;padding:2px 8px;font-size:15px;line-height:1.3}
+.chead{display:flex;gap:12px;align-items:center;padding-right:34px}
+.cport{flex:none;width:64px;height:64px;border-radius:10px;background:#232838 center/cover no-repeat;border:1px solid #333a4f}
+.cport.empty{display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#8b94ab}
+.cid{min-width:0}
+.cid h3{margin:0 0 2px!important;overflow-wrap:anywhere}
+.cid .ep{margin-bottom:6px}
+.cid .row{margin:0}
+.cempty{color:#8b94ab;font-size:13px;margin:12px 0 0}
+.ctree{margin-top:12px;border-top:1px solid #232838;padding-top:10px}
+.cth{display:flex;align-items:center;gap:2px}
+.ctn{flex:1;min-width:0;line-height:1.2}
+.ccount{font-size:12px;color:#8b94ab}
+.cbar{height:3px;background:#232838;border-radius:2px;margin:6px 0 8px;overflow:hidden}
+.cbar i{display:block;height:100%}
+.cicons{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.cskill{position:relative;display:block;cursor:help;border-radius:6px;outline:none}
+.cskill .skimg{width:100%;height:auto;aspect-ratio:1;border-radius:6px;margin:0 auto}
+.ccard.big .cskill .skimg,.cmpcard .cskill .skimg{width:min(100%,var(--isz))}
+.cskill.locked .skimg{filter:grayscale(1) brightness(.45)}
+.cskill.cap .skimg{box-shadow:0 0 0 1.5px #ffcf4d}
+.cskill:hover .skimg,.cskill:focus-visible .skimg,.cskill.on .skimg{box-shadow:0 0 0 2px #5aa7ff}
+.cardbox{position:relative;max-width:1000px;width:auto;padding:22px;max-height:calc(100vh - 24px)}
+#card{padding:12px}
+.cclose{position:absolute;top:12px;right:12px;padding:2px 9px;z-index:1}
+/* pop-out card: identity column on the left, the three trees on the right, sized to fit one screen.
+   --isz = icon size: the smaller of a width cap and what the viewport height leaves for 3 rows of icons. */
+.ccard.big{--isz:min(96px,calc((100vh - 400px) / 3));display:grid;grid-template-columns:minmax(150px,210px) auto;column-gap:26px;align-items:start}
+.ccard.big .chead{grid-column:1;grid-row:1 / span 4;flex-direction:column;align-items:stretch;gap:12px;padding:0}
+.ccard.big .cport{width:100%;height:auto;aspect-ratio:1;border-radius:14px}
+.ccard.big .cport.empty{font-size:64px}
+.ccard.big .cid h3{font-size:24px}
+.ccard.big .cid .ep{font-size:15px;margin-bottom:10px}
+.ccard.big .ctree{grid-column:2;margin-top:10px;padding-top:10px}
+.ccard.big .ctree:nth-child(2){margin-top:0;padding-top:0;border-top:0}
+.ccard.big .cth{padding-right:36px}
+.ccard.big .ctree:not(:nth-child(2)) .cth{padding-right:0}
+.ccard.big .cth .tico{width:2.1em;height:2.1em}
+.ccard.big .ctn b{font-size:16px}
+.clab{display:block;font-size:10.5px;color:#8b94ab;text-transform:uppercase;letter-spacing:.08em}
+.ccard.big .ccount{font-size:13px}
+.ccard.big .cbar{margin:5px 0 7px}
+.ccard.big .cicons{grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+.ccard.big .cskill .skimg{border-radius:8px}
+.cname{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;font-size:11px;line-height:1.25;height:2.5em;text-align:center;color:#c4cad6;overflow-wrap:anywhere}
+.cskill.locked .cname{color:#5d6478}
+/* narrow screens: portrait beside the name on top, 8 small icons per row, names via tap */
+@media(max-width:760px){
+  .ccard.big{display:block}
+  .ccard.big .chead{flex-direction:row;align-items:center;gap:14px;padding-right:40px}
+  .ccard.big .cport{width:84px;flex:none}
+  .ccard.big .cid h3{font-size:20px}
+  .ccard.big .ctree,.ccard.big .ctree:nth-child(2){margin-top:12px;padding-top:10px;border-top:1px solid #232838}
+  .ccard.big .cth{padding-right:0}
+  .ccard.big .cicons{grid-template-columns:repeat(8,1fr);gap:4px}
+  .ccard.big .cname{display:none}
+}
+
+/* picker: on desktop the window never scrolls; the preview column scrolls by itself */
+@media(min-width:801px){
+  .pkbox{display:flex;flex-direction:column;height:calc(100vh - 40px);max-height:860px;overflow:hidden}
+  .pkbox>h2,.pkbox>.tabs,.pkbox>#pkSearch,.pkbox>.row{flex:none}
+  .pkbox .pkgrid{flex:1;min-height:0;margin-top:10px}
+  .pkbox .pkgrid>div:first-child{overflow:auto;min-height:0;padding:1px}
+  .pkbox .preview{overflow:auto;min-height:0}
+  .pkbox .preview>.row:last-child{position:sticky;bottom:-10px;margin:6px -10px -10px;padding:8px 10px 10px;background:#0f1115;border-top:1px solid #232838}
+  .pkbox>.row{margin-top:10px}
+}
+.pcard{padding:6px 9px;line-height:1.3}
+.pcard .tico{width:1.75em;height:1.75em}
+.pkhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pkhead h2{margin:0}
+.pkbtns{display:flex;gap:6px}
+@media(min-width:801px){.pkbox>.pkhead{flex:none}}
+.pcards{gap:6px}
+/* bold skill names on cards */
+.cname{font-weight:650;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
+.cmpcard .cname{overflow-wrap:break-word}
+/* compare: two card columns sized to fit the screen */
+.cmpbox{position:relative;max-width:1400px;max-height:calc(100vh - 24px)}
+#cmp{padding:12px}
+.cmpbox h2{padding-right:40px}
+.cmpbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:8px 0}
+.cmpbar .nhint{margin:0}
+.ukey{display:inline-block;width:10px;height:10px;border-radius:3px;box-shadow:0 0 0 2px #5aa7ff;vertical-align:-1px;margin-right:4px}
+.cmpcard{--isz:max(34px,min(64px,calc((100vh - 610px) / 3)))}
+.cmpcard .ccol{padding:12px 14px}
+.cmpcard .chead{padding-right:0}
+.cmpcard .cport{width:56px;height:56px}
+.cmpcard .cid h3{font-size:17px}
+.cmpcard .ctree{margin-top:10px;padding-top:8px}
+.cmpcard .cicons{grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.cmpcard .cname{font-size:10.5px;line-height:1.25;height:2.5em}
+.cmpcard .cth .tico{width:1.9em;height:1.9em}
+.cmpcard .cskill.uniq .skimg{box-shadow:0 0 0 2px #5aa7ff}
+.cmpcard .cskill.uniq .cname{color:#8fc3ff}
+.cshared{color:#5aa7ff}
+.cempty2{display:block;color:#5a627a;font-size:12px;margin-top:4px}
+@media(max-height:720px){.cmpcard{--isz:max(34px,min(64px,calc((100vh - 545px) / 3)))}.cmpcard .cname{display:none}}
+@media(max-width:700px){.cmpcard .cicons{grid-template-columns:repeat(8,1fr);gap:3px}.cmpcard .cname{display:none}}
+
+/* ---- picker polish ---- */
+.xbtn{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px;border-radius:8px;transition:background .15s,border-color .15s,color .15s}
+.xbtn:hover{background:#e5484d;border-color:#e5484d;color:#fff}
+.pkact{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn-keep{background:#5aa7ff;color:#0f1115;border-color:#5aa7ff;font-weight:700}
+.btn-keep:hover{background:#7cbaff}
+.btn-clear{margin-left:auto;background:rgba(229,72,77,.1);color:#ff8a8d;border-color:rgba(229,72,77,.55);font-weight:600}
+.btn-clear:hover{background:#e5484d;border-color:#e5484d;color:#fff}
+@media(min-width:801px){
+  .pkbox .pkleft{display:flex;flex-direction:column;overflow:hidden!important}
+  .pkbox .pkleft .pcards{flex:1;min-height:0;overflow:auto;padding:1px}
+  .pkbox .pkleft .pager{flex:none;margin-top:8px;padding-top:8px;border-top:1px solid #232838}
+}
+/* ---- category colours: every class family has its own hover ---- */
+[data-cat="all"]{--cc:#5aa7ff}
+[data-cat="melee"]{--cc:#ff7a45}
+[data-cat="ranged"]{--cc:#5fd08a}
+[data-cat="magic"]{--cc:#a77bff}
+[data-cat="support"]{--cc:#f2c94c}
+[data-cat="auxiliary"]{--cc:#35c9d6}
+[data-cat="cursed"]{--cc:#e0245e}
+.tab[data-cat]{position:relative;overflow:hidden;transition:border-color .2s,color .2s,box-shadow .2s,transform .15s,background .2s}
+.tglyph2{margin-right:5px;opacity:.75;display:inline-block;transition:transform .25s}
+.tab[data-cat]:hover{border-color:var(--cc);color:var(--cc);box-shadow:0 0 12px -2px var(--cc);transform:translateY(-1px);background:#1b2030}
+.tab[data-cat].on{background:var(--cc);border-color:var(--cc);color:#0f1115}
+.tab[data-cat].on:hover{color:#0f1115;background:var(--cc)}
+.tab[data-cat].on .tglyph2{opacity:1}
+/* melee: a blade-flash sweeps across */
+.tab[data-cat="melee"]::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);transform:translateX(-120%);pointer-events:none}
+.tab[data-cat="melee"]:hover::after{animation:slash .5s ease-out}
+.tab[data-cat="melee"]:hover .tglyph2{transform:rotate(-20deg) scale(1.15)}
+@keyframes slash{to{transform:translateX(120%)}}
+/* ranged: the glyph fires forward */
+.tab[data-cat="ranged"]:hover .tglyph2{animation:shoot .45s ease-out}
+@keyframes shoot{0%{transform:translateX(0)}50%{transform:translateX(4px)}100%{transform:translateX(0)}}
+/* magic: shimmering arcane gradient */
+.tab[data-cat="magic"]:hover{background:linear-gradient(90deg,#1b2030,#2a1f45,#1b2030);background-size:200% 100%;animation:arcane 1.6s linear infinite}
+.tab[data-cat="magic"]:hover .tglyph2{animation:spin 1.6s linear infinite}
+@keyframes arcane{to{background-position:-200% 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* support: a soft holy pulse */
+.tab[data-cat="support"]:hover{animation:holy 1.4s ease-in-out infinite}
+@keyframes holy{0%,100%{box-shadow:0 0 6px -2px var(--cc)}50%{box-shadow:0 0 16px 1px var(--cc)}}
+/* auxiliary: the glyph ticks around like a gear */
+.tab[data-cat="auxiliary"]:hover .tglyph2{animation:tick 1s steps(4) infinite}
+@keyframes tick{to{transform:rotate(90deg)}}
+/* cursed: flickering, unstable glow */
+.tab[data-cat="cursed"]:hover{animation:flicker 1.1s infinite;text-shadow:0 0 6px var(--cc)}
+@keyframes flicker{0%,100%{box-shadow:0 0 14px -2px var(--cc);opacity:1}42%{opacity:1}44%{opacity:.6;box-shadow:none}46%{opacity:1}70%{box-shadow:0 0 18px 0 var(--cc)}}
+/* tree cards light up in their family colour */
+.pcard{transition:border-color .2s,box-shadow .2s,transform .15s}
+.pcard[data-cat]:not(.dis):hover{border-color:var(--cc);box-shadow:0 0 14px -4px var(--cc);transform:translateY(-1px)}
+.pcard[data-cat].sel{border-color:var(--cc);outline-color:var(--cc);box-shadow:0 0 12px -4px var(--cc)}
+@media(prefers-reduced-motion:reduce){.tab[data-cat],.tab[data-cat]::after,.tglyph2,.pcard{animation:none!important;transition:none!important;transform:none!important}}
+#gtip .tlock{font-size:11px;color:#e5a54f;margin-top:2px}
+
 #gtip.wide{max-width:min(380px,calc(100vw - 16px));max-height:60vh;overflow:auto}
 #gtip.pinned{pointer-events:auto}
 #gtip ul{margin:6px 0 0;padding-left:18px}
@@ -131,7 +299,6 @@ details.sk .body{display:flex;gap:10px;padding:2px 10px 10px;font-size:14px;line
 #gtip .thalf{margin-top:6px;padding-top:6px;border-top:1px solid #2c3346}
 .skl[data-s]{cursor:help}
 .skl[data-s]:hover,.skl[data-s].on{background:#2c3346;box-shadow:inset 0 0 0 1px #5aa7ff}
-.sumtgl{float:right;font-size:12px}
 .slist{margin-top:4px}
 .sitem{padding:6px 0;border-top:1px solid #232838;font-size:12.5px;line-height:1.45;color:#c4cad6}
 .sitem:first-child{border-top:0}
@@ -160,7 +327,7 @@ textarea{width:100%;min-height:70px;margin:6px 0}
 <body>
 
 <header>
-  <h1>Skill Tree Build Planner</h1>
+  <h1>Build Planner</h1>
   <div>
     <button onclick="randomBuild()" title="Locked slots are kept">🎲 Random</button>
     <button onclick="openSave()">Save</button>
@@ -186,6 +353,7 @@ textarea{width:100%;min-height:70px;margin:6px 0}
         </label>
         <input id="inpImg" placeholder="Img link here" style="flex:1;min-width:200px" onchange="setImgUrl(this.value)">
         <label>Level <input id="inpLevel" type="number" min="1" max="100" value="1" style="width:70px" onchange="setLevel(this.value)"></label>
+        <textarea id="inpFlavor" rows="2" maxlength="300" placeholder="Flavor text (optional)" oninput="S.flavor=this.value;softRender()"></textarea>
       </div>
     </div>
 
@@ -199,15 +367,14 @@ textarea{width:100%;min-height:70px;margin:6px 0}
 
 <!-- tree picker -->
 <div id="picker" class="modal hidden" onclick="if(event.target===this)closePicker()">
-  <div class="box">
-    <h2 id="pkTitle">Choose a tree</h2>
+  <div class="box pkbox">
+    <div class="pkhead"><h2 id="pkTitle">Choose a tree</h2><button class="xbtn" onclick="closePicker()" aria-label="Close" title="Close">✕</button></div>
     <div class="tabs" id="pkTabs"></div>
-    <input id="pkSearch" placeholder="Search trees, skills or effects (e.g. Burn, Tempo, Debt)" style="width:100%" oninput="pk.q=this.value;renderCards()">
+    <input id="pkSearch" placeholder="Search trees, skills or effects (e.g. Burn, Tempo, Debt)" style="width:100%" oninput="pk.q=this.value;pk.page=0;renderCards()">
     <div class="pkgrid">
-      <div class="pcards" id="pkCards"></div>
+      <div class="pkleft"><div class="pcards" id="pkCards"></div><div class="pager" id="pkPager"></div></div>
       <div class="preview" id="pkPrev"><span style="color:#5a627a">Click a tree to preview it.</span></div>
     </div>
-    <div class="row"><button onclick="clearSlot()">Clear this slot</button> <button onclick="closePicker()">Cancel</button></div>
   </div>
 </div>
 
@@ -227,6 +394,14 @@ textarea{width:100%;min-height:70px;margin:6px 0}
   </div>
 </div>
 
+<!-- character card pop-out -->
+<div id="card" class="modal hidden" onclick="if(event.target===this)closeCard()">
+  <div class="box cardbox">
+    <button class="cclose" onclick="closeCard()" aria-label="Close">✕</button>
+    <div id="cardBody" class="ccard big"></div>
+  </div>
+</div>
+
 <!-- saved builds -->
 <div id="saves" class="modal hidden" onclick="if(event.target===this)this.classList.add('hidden')">
   <div class="box" style="max-width:560px">
@@ -238,13 +413,13 @@ textarea{width:100%;min-height:70px;margin:6px 0}
 </div>
 
 <!-- compare -->
-<div id="cmp" class="modal hidden" onclick="if(event.target===this)this.classList.add('hidden')">
-  <div class="box">
+<div id="cmp" class="modal hidden" onclick="if(event.target===this){glHide();this.classList.add('hidden')}">
+  <div class="box cmpbox">
+    <button class="cclose" onclick="glHide();$('#cmp').classList.add('hidden')" aria-label="Close">✕</button>
     <h2>Compare builds</h2>
     <div class="row"><select id="cmpSel" onchange="cmpFromSave(this.value)" style="flex:1"></select></div>
     <div class="row"><input id="cmpIn" placeholder="…or paste a build code or share link" style="flex:1"><button onclick="cmpFromCode()">Compare</button></div>
     <div id="cmpOut"></div>
-    <div class="row"><button onclick="$('#cmp').classList.add('hidden')">Close</button></div>
   </div>
 </div>
 
@@ -762,7 +937,7 @@ let TREE_OPEN=new Set();        /* trees whose skill list is expanded */
 const OPEN=new Set();           /* expanded skill rows survive re-renders */
 let ONLY_UNLOCKED=false;         /* hide locked skills in the tree panels (remembered per browser) */
 try{ONLY_UNLOCKED=localStorage.getItem("sk_onlyUnlocked")==="1";}catch(e){}
-function blank(){return{name:"",epithet:"",rank:"D",level:1,image:null,trees:[null,null,null],spent:{},path:[],pathAuto:false}}
+function blank(){return{name:"",epithet:"",flavor:"",rank:"D",level:1,image:null,trees:[null,null,null],spent:{},path:[],pathAuto:false}}
 
 const tree=id=>TREES.find(t=>t.id===id);
 const tiersOf=t=>[...new Set(t.sk.map(s=>s.t))].sort((a,b)=>a-b);
@@ -970,39 +1145,51 @@ function setOnlyUnlocked(on){
 }
 
 /* ---- summary ---- */
-/* trees whose skill descriptions are expanded in the build panel */
-const SUM_OPEN=new Set();
-function toggleSum(id){SUM_OPEN.has(id)?SUM_OPEN.delete(id):SUM_OPEN.add(id);renderSummary();}
 /* full skill card for the summary popup (no glossary underlines: the popup can't be hovered into) */
-function skillTip(ref){
+function skillTip(ref,lk){
   const [id,i]=ref.split(":"),t=tree(id),sk=t.sk[+i];
-  let h='<div class="thead">'+skImg(sk,t)+'<div><b>'+sk.n+(sk.c?' ★':'')+'</b><div class="tmeta">'+t.n+' · tier '+sk.t+' · '+sk.g.join(" · ")+'</div></div></div>';
+  let h='<div class="thead">'+skImg(sk,t)+'<div><b>'+sk.n+(sk.c?' ★':'')+'</b><div class="tmeta">'+t.n+' · tier '+sk.t+' · '+sk.g.join(" · ")+'</div>'+((lk!==undefined?lk==="1":(S.spent[t.id]||0)<sk.t)?'<div class="tlock">Locked · unlocks at '+sk.t+' pts</div>':'')+'</div></div>';
   if(sk.x)h+='<div>'+sk.x+'</div>';
   if(sk.s)h+='<ul>'+sk.s.map(x=>'<li>'+(x[0]?'<i>'+x[0]+':</i> ':'')+x[1]+'</li>').join("")+'</ul>';
   if(sk.f)h+='<ul>'+sk.f.map(r=>'<li><i>Circle '+r[0]+', '+r[1]+':</i> '+r[2]+(r[3]?' <span class="tmeta">Passive: '+r[3]+'</span>':'')+'</li>').join("")+'</ul>';
   if(sk.h)h+=sk.h.map(x=>'<div class="thalf"><i>'+x[0]+' · '+x[1]+'</i> <span class="tmeta">'+x[2].join(" · ")+'</span><div>'+x[3]+'</div></div>').join("");
   return h;
 }
-function renderSummary(){
+/* ---- character card: the build panel, and the same card enlarged in a pop-out ---- */
+function charCard(big){
   const eq=equipped().map(tree);
-  let h='<h3>'+esc(S.name||"Unnamed")+'</h3><div class="ep">'+esc(S.epithet)+'</div><div class="row">'+rankBadge(S)+'<span class="chip">Lv '+S.level+'</span></div>';
-  if(eq.length)h+=eq.map(t=>{
-    const cur=S.spent[t.id]||0;
-    const un=t.sk.map((s,i)=>[s,i]).filter(([s])=>cur>=s.t);
-    const open=SUM_OPEN.has(t.id);
-    const head='<div class="mtree"><b>'+treeIco(t)+t.n+'</b> <span style="color:#8b94ab;font-size:12px">'+un.length+'/'+t.sk.length+' skills</span>'
-      +(un.length?'<button class="lnk sumtgl" aria-expanded="'+open+'" onclick="toggleSum(\''+t.id+'\')">'+(open?'Hide details':'Details')+'</button>':'');
-    if(open)return head+'<div class="slist">'+un.map(([s])=>'<div class="sitem"><div><b>'+s.n+(s.c?' ★':'')+'</b> <span class="tags">'+s.g.join(" · ")+'</span></div>'
-      +(s.x?'<div>'+s.x+'</div>':'')+(s.h?s.h.map(x=>'<div><i>'+x[0]+' · '+x[1]+':</i> '+x[3]+'</div>').join(""):'')+'</div>').join("")+'</div></div>';
-    return head+'<br>'+un.map(([s,i])=>'<span class="skl" tabindex="0" data-s="'+t.id+':'+i+'">'+s.n+(s.c?" ★":"")+'</span>').join(" ")+'</div>';
+  const nm=S.name||"Unnamed",ep=(S.epithet||"").trim();
+  const showEp=ep&&ep.toLowerCase()!==(S.name||"").trim().toLowerCase();
+  const port=S.image?'<div class="cport" style="background-image:url(\''+esc(S.image).replace(/'/g,"%27")+'\')"></div>'
+    :'<div class="cport empty">'+esc((S.name||"?").trim()[0]||"?").toUpperCase()+'</div>';
+  let h='<div class="chead">'+port+'<div class="cid"><h3>'+esc(nm)+'</h3>'+(showEp?'<div class="ep">'+esc(ep)+'</div>':'')
+    +'<div class="row">'+rankBadge(S)+'<span class="chip">Lv '+S.level+'</span></div>'
+    +((S.flavor||"").trim()?'<p class="cflav">'+esc(S.flavor.trim())+'</p>':'')+'</div></div>';
+  if(!eq.length)return h+'<p class="cempty">No skill trees chosen yet.</p>';
+  h+=eq.map((t,n)=>{
+    const cur=S.spent[t.id]||0,got=t.sk.filter(s=>cur>=s.t).length;
+    const lab=big?'<span class="clab">'+["Birth tree","Sub tree","Sub tree"][S.trees.indexOf(t.id)]+'</span>':'';
+    return '<div class="ctree"><div class="cth">'+treeIco(t)+'<div class="ctn">'+lab+'<b>'+t.n+'</b></div><span class="ccount">'+got+'/'+t.sk.length+'</span></div>'
+      +'<div class="cbar"><i style="width:'+(cur/33*100)+'%;background:'+RARC[t.r]+'"></i></div>'
+      +'<div class="cicons">'+t.sk.map((s,i)=>'<span class="cskill'+(cur>=s.t?'':' locked')+(s.c?' cap':'')+'" tabindex="0" data-s="'+t.id+':'+i+'">'+skImg(s,t)
+        +(big?'<span class="cname">'+s.n+'</span>':'')+'</span>').join("")+'</div></div>';
   }).join("");
-  $("#summary").innerHTML=h;
+  return h;
 }
+function renderSummary(){
+  $("#summary").innerHTML='<button class="cpop" onclick="openCard()" title="Open as a character card" aria-label="Open as a character card">⤢</button>'+charCard(false);
+  if(!$("#card").classList.contains("hidden"))$("#cardBody").innerHTML=charCard(true);
+}
+function openCard(){$("#cardBody").innerHTML=charCard(true);$("#card").classList.remove("hidden");}
+function closeCard(){glHide();$("#card").classList.add("hidden");}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#card").classList.contains("hidden"))closeCard();});
 
 /* ---- picker ---- */
-let pk={ctx:0,cat:"all",q:"",sel:null};
+let pk={ctx:0,cat:"all",q:"",sel:null,page:0};
+const PK_PER=15;   /* trees per picker page */
 function openPicker(idx){MOVE=null;
-  pk={ctx:idx,cat:"all",q:"",sel:S.trees[idx]};
+  pk={ctx:idx,cat:"all",q:"",sel:S.trees[idx],page:0};
+  if(pk.sel)pk.page=Math.floor(TREES.findIndex(t=>t.id===pk.sel)/PK_PER);   /* open on the page with the current tree */
   $("#pkTitle").textContent=idx===0?"Choose your birth tree (main class trees only)":"Choose a sub tree";
   $("#pkSearch").value="";
   renderPicker();$("#picker").classList.remove("hidden");
@@ -1010,13 +1197,13 @@ function openPicker(idx){MOVE=null;
 function closePicker(){$("#picker").classList.add("hidden");}
 function renderPicker(){
   const cats=[["all","All"],...Object.keys(CATN).map(c=>[c,CATN[c]])];
-  $("#pkTabs").innerHTML=cats.map(c=>'<button class="tab'+(pk.cat===c[0]?" on":"")+'" onclick="pk.cat=\''+c[0]+'\';renderPicker()">'+c[1]+'</button>').join("");
+  $("#pkTabs").innerHTML=cats.map(c=>'<button class="tab'+(pk.cat===c[0]?" on":"")+'" data-cat="'+c[0]+'" onclick="pk.cat=\''+c[0]+'\';pk.page=0;renderPicker()">'+(c[0]==="all"?"":'<span class="tglyph2">'+CATI[c[0]]+'</span>')+c[1]+'</button>').join("");
   renderCards();renderPrev();
 }
 function renderCards(){
   const q=pk.q.trim().toLowerCase();
   const others=S.trees.filter((id,i)=>id&&i!==pk.ctx);
-  $("#pkCards").innerHTML=TREES.filter(t=>(pk.cat==="all"||t.c===pk.cat)).map(t=>{
+  const cards=TREES.filter(t=>(pk.cat==="all"||t.c===pk.cat)).map(t=>{
     const dup=others.includes(t.id);
     const curseBlocked=t.c==="cursed"&&others.some(id=>tree(id).c==="cursed");
     const notMain=pk.ctx===0&&t.ty!==MAIN;
@@ -1024,18 +1211,27 @@ function renderCards(){
     const match=q&&(t.n.toLowerCase().includes(q)||(t.cu&&curseText(t).includes(q)));
     const hits=q?t.sk.filter(s=>skText(s).includes(q)).slice(0,3).map(s=>s.n):[];
     if(q&&!match&&!hits.length)return "";
-    return '<div class="pcard'+(pk.sel===t.id?" sel":"")+(dis?" dis":"")+'" onclick="'+(dis?"":"pickCard('"+t.id+"')")+'">'+treeIco(t)+'<b>'+t.n+'</b><br>'+badge(t)+'<span style="font-size:11px;color:#8b94ab"> '+t.ty+'</span>'+(hits.length?'<div class="hint">→ '+hits.join(", ")+'</div>':'')+(dup?'<div class="hint">already equipped</div>':'')+(curseBlocked?'<div class="hint">only one cursed tree</div>':'')+(notMain&&!dup?'<div class="hint">sub tree only</div>':'')+'</div>';
-  }).join("")||'<div style="color:#5a627a">No matches.</div>';
+    return '<div class="pcard'+(pk.sel===t.id?" sel":"")+(dis?" dis":"")+'" data-cat="'+t.c+'" onclick="'+(dis?"":"pickCard('"+t.id+"')")+'">'+treeIco(t)+'<b>'+t.n+'</b><br>'+badge(t)+'<span style="font-size:11px;color:#8b94ab"> '+t.ty+'</span>'+(hits.length?'<div class="hint">→ '+hits.join(", ")+'</div>':'')+(dup?'<div class="hint">already equipped</div>':'')+(curseBlocked?'<div class="hint">only one cursed tree</div>':'')+(notMain&&!dup?'<div class="hint">sub tree only</div>':'')+'</div>';
+  }).filter(Boolean);
+  const pages=Math.max(1,Math.ceil(cards.length/PK_PER));
+  pk.page=Math.max(0,Math.min(pk.page,pages-1));
+  $("#pkCards").innerHTML=cards.slice(pk.page*PK_PER,(pk.page+1)*PK_PER).join("")||'<div style="color:#5a627a">No matches.</div>';
+  $("#pkPager").innerHTML=pages<2?"":
+    '<button onclick="pkGo('+(pk.page-1)+')"'+(pk.page?'':' disabled')+'>‹ Back</button>'
+    +'<span class="pnums">'+Array.from({length:pages},(_,i)=>'<button class="pnum'+(i===pk.page?' on':'')+'" onclick="pkGo('+i+')" aria-label="Page '+(i+1)+'">'+(i+1)+'</button>').join("")+'</span>'
+    +'<button onclick="pkGo('+(pk.page+1)+')"'+(pk.page<pages-1?'':' disabled')+'>Next ›</button>';
 }
+function pkGo(p){pk.page=p;renderCards();}
 function pickCard(id){pk.sel=id;renderCards();renderPrev();}
 function renderPrev(){
-  if(!pk.sel){$("#pkPrev").innerHTML='<span style="color:#5a627a">Click a tree to preview it.</span>';return;}
+  if(!pk.sel){$("#pkPrev").innerHTML='<span style="color:#5a627a">Click a tree to preview it.</span>';return;}   /* (an occupied slot always opens with its tree selected) */
   const t=tree(pk.sel);
   const same=pk.sel===S.trees[pk.ctx];
   $("#pkPrev").innerHTML='<b>'+treeIco(t)+t.n+'</b> '+badge(t)+'<div style="font-size:12px;color:#8b94ab">'+t.ty+'</div>'
     +curseBox(t)
     +t.sk.slice().sort((a,b)=>a.t-b.t).map(sk=>skillRow(sk,t,true)).join("")
-    +'<div class="row"><button style="background:#5aa7ff;color:#0f1115;border-color:#5aa7ff;font-weight:700" onclick="commitPick()">'+(same?"Keep this tree":"Set as "+(pk.ctx===0?"birth tree":"sub tree"))+'</button></div>';
+    +'<div class="row pkact"><button class="btn-keep" onclick="commitPick()">'+(same?"Keep this tree":"Set as "+(pk.ctx===0?"birth tree":"sub tree"))+'</button>'
+    +(S.trees[pk.ctx]?'<button class="btn-clear" onclick="clearSlot()" title="Remove '+tree(S.trees[pk.ctx]).n+' and its points from this slot">Clear this slot</button>':'')+'</div>';
 }
 function commitPick(){
   const id=pk.sel;if(!id)return;
@@ -1090,20 +1286,39 @@ function randomBuild(){
   const sup=tree(trees[0]).c==="support";
   const rank=sup?"U":(RANK_PINNED&&S.rank!=="U"?S.rank:pick(RANKS.slice(1)));
   /* name, title and portrait are the character, not the build: Random never touches them */
-  S={...blank(),name:S.name,epithet:S.epithet,image:S.image,rank,level,trees,spent,path};
+  S={...blank(),name:S.name,epithet:S.epithet,flavor:S.flavor,image:S.image,rank,level,trees,spent,path};
   renderAll();toast("Random build: Lv "+level+" · "+tree(trees[0]).n);
 }
 
 /* ---- identity ---- */
 function setLevel(v){S.level=Math.max(1,Math.min(100,parseInt(v)||1));renderAll();}
+/* Square-crop (cover) and resize an image with good quality.
+   Big reductions are done in halving steps: a single big canvas downscale skips pixels and looks jagged. */
+function squareImg(img,size,q){
+  const sw=img.naturalWidth||img.width,sh=img.naturalHeight||img.height,side=Math.min(sw,sh);
+  let src=document.createElement("canvas");src.width=src.height=side;
+  let ctx=src.getContext("2d");ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  ctx.drawImage(img,(sw-side)/2,(sh-side)/2,side,side,0,0,side,side);
+  let cur=side;
+  while(cur/2>=size){
+    const n=document.createElement("canvas");n.width=n.height=Math.round(cur/2);
+    const x=n.getContext("2d");x.imageSmoothingEnabled=true;x.imageSmoothingQuality="high";
+    x.drawImage(src,0,0,n.width,n.height);src=n;cur=n.width;
+  }
+  const out=document.createElement("canvas"),o=Math.min(size,cur);out.width=out.height=o;
+  const c=out.getContext("2d");c.imageSmoothingEnabled=true;c.imageSmoothingQuality="high";
+  c.drawImage(src,0,0,o,o);
+  for(let qq=q;qq>=0.5;qq-=0.1){   /* stay under the size the app accepts for stored portraits */
+    let d=out.toDataURL("image/webp",qq);if(!d.startsWith("data:image/webp"))d=out.toDataURL("image/jpeg",qq);
+    if(d.length<580000)return d;
+  }
+  return out.toDataURL("image/jpeg",0.5);
+}
 function uploadImg(inp){
   const f=inp.files[0];inp.value="";if(!f)return;
   const img=new Image(),url=URL.createObjectURL(f);
-  img.onload=()=>{   /* shrink to 256px so saves fit in browser storage */
-    const c=document.createElement("canvas"),s=256;c.width=c.height=s;
-    const k=Math.max(s/img.width,s/img.height),w=img.width*k,h=img.height*k;
-    c.getContext("2d").drawImage(img,(s-w)/2,(s-h)/2,w,h);
-    S.image=c.toDataURL("image/jpeg",0.85);URL.revokeObjectURL(url);renderAll();
+  img.onload=()=>{   /* 512px square: sharp on the big card, still small enough for saves in browser storage */
+    S.image=squareImg(img,512,0.9);URL.revokeObjectURL(url);renderAll();
   };
   img.onerror=()=>{URL.revokeObjectURL(url);toast("That file couldn't be read as an image");};
   img.src=url;
@@ -1117,7 +1332,12 @@ function codeArr(st=S){
   const p=(!st.pathAuto&&pathValid(st))?st.path.map(id=>st.trees.indexOf(id)).join(""):"";
   return [st.name,st.epithet,st.rank,st.level,t,p];
 }
-function code(st=S){const a=codeArr(st);if(!a[5])a.pop();return b64u(JSON.stringify(a));}
+function packArr(st,img){
+  const a=codeArr(st);a[6]=img||0;a[7]=(st.flavor||"").trim();
+  while(a.length>5&&!a[a.length-1])a.pop();
+  return a;
+}
+function code(st=S){return b64u(JSON.stringify(packArr(st)));}
 function cleanCode(c){c=String(c||"").trim();if(c.includes("#"))c=c.split("#").pop();return c;}
 /* portraits: an uploaded image (data URL) or a direct https link */
 function safeImg(u){
@@ -1133,7 +1353,7 @@ function parseRaw(raw){
     o={name:raw[0],epithet:raw[1],rank:raw[2],level:raw[3],
        trees:tl.map(x=>Array.isArray(x)?x[0]:null),
        spent:Object.fromEntries(tl.filter(x=>Array.isArray(x)&&x[1]>0).map(x=>[x[0],x[1]])),
-       pathStr:typeof raw[5]==="string"?raw[5]:"",image:raw[6]};
+       pathStr:typeof raw[5]==="string"?raw[5]:"",image:raw[6],flavor:raw[7]};
   }else{
     o=raw&&typeof raw==="object"?raw:{};
     if(o.birth!==undefined||o.subs!==undefined)o.trees=[o.birth||null,(o.subs&&o.subs[0])||null,(o.subs&&o.subs[1])||null];
@@ -1149,7 +1369,7 @@ function parseRaw(raw){
   }
   const spent={};
   trees.forEach(id=>{if(!id)return;const v=parseInt((o.spent||{})[id])||0;const T=tiersOf(tree(id)).filter(T=>T<=v).pop()||0;if(T)spent[id]=T;});
-  const st={...blank(),name:String(o.name??"").slice(0,60),epithet:String(o.epithet??"").slice(0,80),
+  const st={...blank(),name:String(o.name??"").slice(0,60),epithet:String(o.epithet??"").slice(0,80),flavor:String(o.flavor||"").slice(0,300),
     rank:RANKS.includes(o.rank)?o.rank:"D",level:Math.max(1,Math.min(100,parseInt(o.level)||1)),trees,spent,image:safeImg(o.image)};
   if(o.pathStr)st.path=[...o.pathStr].map(d=>trees[+d]||"?");
   if(!pathValid(st)){st.path=autoPath(st);st.pathAuto=true;}
@@ -1184,19 +1404,14 @@ function thumb(src,size=128){
     if(!src||!src.startsWith("data:"))return res(src||null);
     const img=new Image();
     img.onload=()=>{
-      const c=document.createElement("canvas");c.width=c.height=size;
-      const k=Math.max(size/img.width,size/img.height),w=img.width*k,h=img.height*k;
-      c.getContext("2d").drawImage(img,(size-w)/2,(size-h)/2,w,h);
-      let d=c.toDataURL("image/webp",0.72);if(!d.startsWith("data:image/webp"))d=c.toDataURL("image/jpeg",0.72);
-      res(d);
+      res(squareImg(img,size,0.72));
     };
     img.onerror=()=>res(null);img.src=src;
   });
 }
 async function buildLink(withImg){
-  const a=codeArr(S);
   const img=withImg&&S.image?await thumb(S.image):null;
-  if(img)a[6]=img;else if(!a[5])a.pop();
+  const a=packArr(S,img);
   const json=JSON.stringify(a);
   const c=CAN_ZIP?"z."+await zip(json):b64u(json);
   return location.href.split("#")[0]+"#"+c;
@@ -1264,27 +1479,39 @@ function openCompare(){
   $("#cmpSel").innerHTML='<option value="">Pick a saved build…</option>'+sv.map((s,i)=>'<option value="'+i+'">'+esc(s.name)+'</option>').join("");
   $("#cmpIn").value="";renderCompare();$("#cmp").classList.remove("hidden");
 }
-function cmpFromSave(i){if(i==="")return;const s=getSaves()[+i];CB=s?parseCode(s.c):null;if(!CB)toast("That save couldn't be read");renderCompare();}
+function cmpFromSave(i){if(i==="")return;const s=getSaves()[+i];CB=s?parseCode(s.c):null;if(CB&&s.img)CB.image=s.img;if(!CB)toast("That save couldn't be read");renderCompare();}
 function cmpFromCode(){const b=parseCode($("#cmpIn").value);if(!b){toast("Invalid code");return;}CB=b;renderCompare();}
 function unlockedSet(st){const s=new Set();st.trees.forEach(id=>{if(!id)return;const cur=st.spent[id]||0;tree(id).sk.forEach(k=>{if(cur>=k.t)s.add(id+"|"+k.n);});});return s;}
 function cmpCol(st,other,label){
   const theirs=unlockedSet(other);
-  let h='<div class="ccol"><div class="slotlab">'+label+'</div><h3>'+esc(st.name||"Unnamed")+'</h3><div class="ep">'+esc(st.epithet)+'</div><div class="row">'+rankBadge(st)+'<span class="chip">Lv '+st.level+'</span><span class="chip">'+sumSpent(st)+' pts spent</span></div>';
+  const ep=(st.epithet||"").trim(),showEp=ep&&ep.toLowerCase()!==(st.name||"").trim().toLowerCase();
+  const port=st.image?'<div class="cport" style="background-image:url(\''+esc(st.image).replace(/'/g,"%27")+'\')"></div>'
+    :'<div class="cport empty">'+esc(((st.name||"?").trim()[0]||"?").toUpperCase())+'</div>';
+  let h='<div class="ccol"><div class="chead">'+port+'<div class="cid"><div class="slotlab">'+label+'</div><h3>'+esc(st.name||"Unnamed")+'</h3>'
+    +(showEp?'<div class="ep">'+esc(ep)+'</div>':'')
+    +'<div class="row">'+rankBadge(st)+'<span class="chip">Lv '+st.level+'</span><span class="chip">'+sumSpent(st)+' pts</span></div></div></div>';
   st.trees.forEach((id,i)=>{
     const lab=i?"Sub tree "+i:"Birth tree";
-    if(!id){h+='<div class="mtree"><span class="slotlab">'+lab+'</span> <span style="color:#5a627a">empty</span></div>';return;}
+    if(!id){h+='<div class="ctree"><div class="clab">'+lab+'</div><span class="cempty2">empty slot</span></div>';return;}
     const t=tree(id),cur=st.spent[id]||0,shared=other.trees.includes(id);
     const oc=shared?(other.spent[id]||0):null;
-    const un=t.sk.filter(k=>cur>=k.t);
-    h+='<div class="mtree"><div class="slotlab">'+lab+'</div><b>'+treeIco(t)+t.n+'</b> '+badge(t)+' <span style="font-size:12px;color:#8b94ab">'+cur+'/33'+(shared?' · shared'+(oc!==cur?' ('+(cur>oc?'+':'')+(cur-oc)+')':''):'')+'</span><br>'
-      +(un.length?un.map(k=>'<span class="skl'+(theirs.has(id+"|"+k.n)?'':' uniq')+'">'+k.n+(k.c?" ★":"")+'</span>').join(" "):'<span style="color:#5a627a;font-size:12px">no skills yet</span>')+'</div>';
+    const diff=shared&&oc!==cur?' ('+(cur>oc?'+':'')+(cur-oc)+')':'';
+    h+='<div class="ctree"><div class="cth">'+treeIco(t)+'<div class="ctn"><span class="clab">'+lab+'</span><b>'+t.n+'</b></div>'
+      +'<span class="ccount">'+cur+'/33'+(shared?' · <span class="cshared">shared'+diff+'</span>':'')+'</span></div>'
+      +'<div class="cbar"><i style="width:'+(cur/33*100)+'%;background:'+RARC[t.r]+'"></i></div>'
+      +'<div class="cicons">'+t.sk.map((k,j)=>{
+        const on=cur>=k.t,uniq=on&&!theirs.has(id+"|"+k.n);
+        return '<span class="cskill'+(on?'':' locked')+(k.c?' cap':'')+(uniq?' uniq':'')+'" tabindex="0" data-s="'+id+':'+j+'" data-l="'+(on?0:1)+'">'+skImg(k,t)+'<span class="cname">'+k.n+'</span></span>';
+      }).join("")+'</div></div>';
   });
   return h+'</div>';
 }
 function renderCompare(){
   if(!CB){$("#cmpOut").innerHTML='<p class="nhint">Choose a saved build or paste a code to compare it with your current build.</p>';return;}
   const a=unlockedSet(S),b=unlockedSet(CB),both=[...a].filter(x=>b.has(x)).length;
-  $("#cmpOut").innerHTML='<p class="nhint">Highlighted skills are unique to that build. '+both+' skill'+(both===1?'':'s')+' shared.</p><div class="cgrid">'+cmpCol(S,CB,"Current")+cmpCol(CB,S,"Compared")+'</div><div class="row"><button onclick="swapCompare()">Swap: edit the compared build</button></div>';
+  $("#cmpOut").innerHTML='<div class="cmpbar"><p class="nhint"><span class="ukey"></span> Outlined skills are unique to that build · '+both+' skill'+(both===1?'':'s')+' shared</p>'
+    +'<button onclick="swapCompare()">Swap: edit the compared build</button></div>'
+    +'<div class="cgrid ccard cmpcard">'+cmpCol(S,CB,"Current")+cmpCol(CB,S,"Compared")+'</div>';
 }
 function swapCompare(){if(!CB)return;const old=S;S=CB;CB=old;renderAll();renderCompare();toast("Swapped builds");}
 
@@ -1299,7 +1526,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")["#picker","#share",
 /* ---- boot ---- */
 let LAST_HASH="";
 /* an untouched character keeps a clean URL; anything else is carried in the hash */
-function isBlank(st){const b=blank();return !st.name&&!st.epithet&&!st.image&&st.level===b.level&&!st.trees.some(Boolean);}
+function isBlank(st){const b=blank();return !st.name&&!st.epithet&&!(st.flavor||"").trim()&&!st.image&&st.level===b.level&&!st.trees.some(Boolean);}
 function syncHash(){
   LAST_HASH=isBlank(S)?"":code();
   try{history.replaceState(null,"",LAST_HASH?"#"+LAST_HASH:location.pathname+location.search);}catch(e){}
@@ -1308,7 +1535,7 @@ function softRender(){renderSummary();syncHash();}   /* typing a name doesn't re
 function renderAll(){
   if(!pathValid(S)){S.path=autoPath(S);S.pathAuto=true;}
   LOCK=LOCK.map((l,i)=>l&&!!S.trees[i]);
-  $("#inpName").value=S.name;$("#inpEpithet").value=S.epithet;$("#inpLevel").value=S.level;
+  $("#inpName").value=S.name;$("#inpEpithet").value=S.epithet;$("#inpFlavor").value=S.flavor||"";$("#inpLevel").value=S.level;
   $("#selRank").value=S.rank;
   $("#portrait").style.backgroundImage=S.image?'url("'+S.image+'")':"";
   $("#inpImg").value=S.image&&!S.image.startsWith("data:")?S.image:"";
@@ -1321,10 +1548,10 @@ function renderAll(){
 
 /* ---- glossary tooltip: hover on desktop, tap on touch, focus with keyboard ---- */
 let GL_PIN=null;
-const TIP_SEL=".gl,.skl[data-s]";
+const TIP_SEL=".gl,.skl[data-s],.cskill[data-s]";
 function glShow(el){
   const tip=$("#gtip"),k=el.dataset.g;
-  if(el.dataset.s){tip.innerHTML=skillTip(el.dataset.s);tip.classList.add("wide");}
+  if(el.dataset.s){tip.innerHTML=skillTip(el.dataset.s,el.dataset.l);tip.classList.add("wide");}
   else{tip.innerHTML='<b>'+esc(k)+'</b>'+esc(GL_DEF[k]||"");tip.classList.remove("wide");}
   tip.scrollTop=0;tip.classList.add("show");tip.classList.toggle("pinned",!!GL_PIN);
   const r=el.getBoundingClientRect(),tw=tip.offsetWidth,th=tip.offsetHeight;
