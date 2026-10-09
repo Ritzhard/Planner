@@ -485,18 +485,25 @@ function skillBody(sk,t,i){
 function skillRow(sk,t,i,unlocked,open,key){
   return '<details class="sk '+(unlocked?"on":"off")+'"'+(key?' data-sk="'+key+'"':'')+(open?' open':'')+'><summary><span class="chip">'+sk.t+'</span>'+skImg(sk,t)+'<b>'+esc(sk.n)+'</b>'+(sk.c?' <span class="star" title="Capstone">★</span>':'')+' <span class="tags">'+sk.g.map(esc).join(" · ")+'</span></summary><div class="body">'+skillBody(sk,t,i)+'</div></details>';
 }
-const tierLabel=(t,T)=>plural(T,"pt")+": "+t.sk.filter(s=>s.t===T).map(s=>s.n).join(", ");
-function treeBox(t){
-  const cur=S.spent[t.id]||0,mx=maxTier(t),total=sumSpent(S),tiers=tiersOf(t);
-  const chips='<button class="notch'+(cur===0?" act":"")+'" data-act="tier" data-id="'+t.id+'" data-t="0" title="Remove all points" aria-label="'+esc(t.n)+': remove all points" aria-pressed="'+(cur===0)+'">0</button>'
-    +tiers.map(T=>{
-      const afford=T<=cur||(total-cur+T)<=S.level,act=cur>=T;
-      return '<button class="notch'+(act?" act":"")+(afford?"":" no")+'" data-act="tier" data-id="'+t.id+'" data-t="'+T+'"'
-        +(act?' style="background:'+RARC[t.r]+';color:#0f1115;border-color:'+RARC[t.r]+'"':'')
-        +' title="'+esc(tierLabel(t,T))+(afford?"":" (not enough points)")+'" aria-label="'+esc(t.n+", "+tierLabel(t,T))+'" aria-pressed="'+act+'">'+T+'</button>';
-    }).join("");
+/* Investing: click a skill to put points up to its tier. Clicking the highest unlocked skill again
+   steps back down to the tier before it. Hovering previews what would unlock or be removed. */
+function prevTier(t,T){return tiersOf(t).filter(x=>x<T).pop()||0;}
+function tierTarget(t,i){const T=t.sk[i].t,cur=S.spent[t.id]||0;return cur===T?prevTier(t,T):T;}
+function tierStrip(t){
+  const cur=S.spent[t.id]||0,total=sumSpent(S);
+  return '<div class="tstrip" data-id="'+t.id+'" role="group" aria-label="'+esc(t.n)+' skills: click one to invest up to it">'+t.sk.map((s,i)=>{
+    const on=cur>=s.t,afford=on||(total-cur+s.t)<=S.level,top=cur===s.t;
+    const lab=top?s.n+": unlocked, click to go back to "+plural(prevTier(t,s.t),"pt"):on?s.n+": unlocked, click to set "+plural(s.t,"pt"):s.n+": "+plural(s.t,"pt")+" to unlock"+(afford?"":" (not enough points)");
+    return '<button type="button" class="cskill tskill'+(on?"":" locked")+(s.c?" cap":"")+(top?" top":"")+(afford?"":" no")+'" data-act="tier-sk" data-id="'+t.id+'" data-i="'+i+'" data-s="'+t.id+':'+i+'" aria-label="'+esc(lab)+'" aria-pressed="'+on+'">'
+      +'<span class="tsimg">'+skImg(s,t)+'<span class="tpt">'+s.t+'</span></span><span class="cname">'+esc(s.n)+'</span></button>';
+  }).join("")+'</div>';
+}
+function tierHint(t,cur){
   const nx=nextTier(t,cur);
-  const hint=nx?"Next at "+plural(nx,"pt")+": "+t.sk.filter(s=>s.t===nx).map(s=>esc(s.n)).join(", "):"Tree fully unlocked";
+  return nx?"Next at "+plural(nx,"pt")+": "+t.sk.filter(s=>s.t===nx).map(s=>esc(s.n)).join(", "):"Tree fully unlocked";
+}
+function treeBox(t){
+  const cur=S.spent[t.id]||0,mx=maxTier(t);
   const open=TREE_OPEN.has(t.id),got=t.sk.filter(s=>cur>=s.t).length;
   let body="";
   if(open){
@@ -507,10 +514,26 @@ function treeBox(t){
     body='<div class="sklist">'+curseBox(t)+'<div class="sktools">'
       +(keys.length?'<button class="lnk" data-act="tree-skills" data-id="'+t.id+'" data-v="'+(allOpen?0:1)+'">'+(allOpen?"Collapse skills":"Expand skills")+'</button>':'')
       +(hidden?'<span>'+plural(hidden,"locked skill")+' hidden</span>':'')+'</div>'
-      +(shown.length?shown.map(([sk,i])=>skillRow(sk,t,i,cur>=sk.t,OPEN.has(t.id+":"+i),t.id+":"+i)).join(""):'<div class="skempty">No skills unlocked yet. Pick a tier above to invest.</div>')+'</div>';
+      +(shown.length?shown.map(([sk,i])=>skillRow(sk,t,i,cur>=sk.t,OPEN.has(t.id+":"+i),t.id+":"+i)).join(""):'<div class="skempty">No skills unlocked yet. Click a skill above to invest.</div>')+'</div>';
   }
-  return '<div class="treebox"><button class="treehead" data-act="tree-toggle" data-id="'+t.id+'" aria-expanded="'+open+'" title="'+(open?"Hide skills":"Show skills")+'">'+treeIco(t)+'<span class="thinfo"><span class="tname">'+esc(t.n)+'</span>'+badge(t)+'<span class="pts">'+cur+'/'+mx+' pts · '+got+'/'+t.sk.length+' skills</span></span><span class="chev'+(open?" up":"")+'" aria-hidden="true">▾</span></button>'
-    +'<div class="notches" role="group" aria-label="'+esc(t.n)+' tiers">'+chips+'</div><div class="nhint">'+hint+' · pick a tier to invest up to it</div>'+body+'</div>';
+  return '<div class="treebox"><button class="treehead" data-act="tree-toggle" data-id="'+t.id+'" aria-expanded="'+open+'" title="'+(open?"Hide skill details":"Show skill details")+'">'+treeIco(t)+'<span class="thinfo"><span class="tname">'+esc(t.n)+'</span>'+badge(t)+'<span class="pts">'+cur+'/'+mx+' pts · '+got+'/'+t.sk.length+' skills</span></span><span class="chev'+(open?" up":"")+'" aria-hidden="true">▾</span></button>'
+    +'<div class="tbar"><i style="width:'+(cur/mx*100)+'%;background:'+RARC[t.r]+'"></i></div>'
+    +tierStrip(t)
+    +'<div class="thint"><span class="nhint" data-hint="'+t.id+'">'+tierHint(t,cur)+'</span>'
+    +(cur?'<button class="lnk" data-act="tier" data-id="'+t.id+'" data-t="0">Clear points</button>':'')+'</div>'+body+'</div>';
+}
+/* hover / focus preview on the skill strip */
+function tierPreview(btn){
+  const strip=btn&&btn.closest(".tstrip");if(!strip)return;
+  const t=tree(strip.dataset.id),cur=S.spent[t.id]||0,T=tierTarget(t,+btn.dataset.i),total=sumSpent(S);
+  strip.querySelectorAll(".tskill").forEach(b=>{const k=t.sk[+b.dataset.i].t;b.classList.toggle("pv-add",k>cur&&k<=T);b.classList.toggle("pv-rem",k<=cur&&k>T);});
+  const h=strip.parentNode.querySelector("[data-hint]");if(!h)return;
+  const d=T-cur,left=S.level-(total-cur+T);
+  h.innerHTML=d===0?tierHint(t,cur):(d>0?"+":"−")+plural(Math.abs(d),"pt")+" → "+T+"/"+maxTier(t)+" in this tree"+(left<0?' <span class="over">('+(-left)+" over your level)</span>":" · "+plural(left,"pt")+" left after");
+}
+function tierPreviewEnd(strip){
+  if(!strip)return;strip.querySelectorAll(".pv-add,.pv-rem").forEach(b=>b.classList.remove("pv-add","pv-rem"));
+  const t=tree(strip.dataset.id),h=strip.parentNode.querySelector("[data-hint]");if(t&&h)h.innerHTML=tierHint(t,S.spent[t.id]||0);
 }
 function renderTrees(){
   const eq=equipped().map(tree);
@@ -543,7 +566,7 @@ function charCard(st,big){
   return h+appliesHTML(st);
 }
 function renderSummary(){
-  patch($("#summary"),'<button class="cpop" data-act="card" title="Open as a character card" aria-label="Open as a character card">⤢</button><div class="ccard">'+charCard(S,false)+'</div>');
+  patch($("#summary"),'<button class="cpop" data-act="card" title="Open as a character card" aria-label="Open as a character card">⤢</button><div class="ccard cclick" data-act="card" title="Open as a character card">'+charCard(S,false)+'</div>');
   if($("#card").open)patch($("#cardBody"),charCard(S,true));
 }
 
@@ -648,7 +671,7 @@ const topLayer=()=>{const d=$$("dialog[open]");return d.length?d[d.length-1]:doc
 function selFor(b){
   const d=(b&&b.dataset)||{};if(!d.act)return null;
   let s='[data-act="'+d.act+'"]';
-  ["id","t","slot","cat","p","tab"].forEach(k=>{if(d[k]!=null)s+='[data-'+k+'="'+cssEsc(d[k])+'"]';});
+  ["id","t","i","slot","cat","p","tab"].forEach(k=>{if(d[k]!=null)s+='[data-'+k+'="'+cssEsc(d[k])+'"]';});
   if(d.act==="all-skills")s+='[data-v="'+d.v+'"]';
   return s;
 }
@@ -779,14 +802,15 @@ function getSaves(){const a=store.get(KEY.saves,[]);return Array.isArray(a)?a.fi
 function putSaves(a){if(store.set(KEY.saves,a))return true;toast("Couldn't save: browser storage is full or blocked");return false;}
 let SV_TAB="mine",SV_RENAME=null;
 function openSaves(tab){commitSoon.flush();SV_TAB=tab||"mine";SV_RENAME=null;renderSaves();openDlg("saves");}
+function openPremades(){commitSoon.flush();$("#pmBody").innerHTML=premadesHTML();openDlg("premades");}
 function saveMeta(st){
   const ids=st.trees.filter(Boolean);
   return '<span class="svtrees">'+ids.map(id=>treeIco(tree(id))).join("")+'</span><span>'+(ids.map(id=>esc(tree(id).n)).join(" · ")||"no trees")+'</span><span>Lv '+st.level+' · '+plural(sumSpent(st),"pt")+'</span>';
 }
 function renderSaves(){
-  $("#svTabs").innerHTML=[["mine","My builds"],["premades","Premades"],["import","Import & backup"]].map(([k,l])=>'<button class="tab'+(SV_TAB===k?" on":"")+'" data-act="sv-tab" data-tab="'+k+'" aria-pressed="'+(SV_TAB===k)+'">'+l+'</button>').join("");
+  $("#svTabs").innerHTML=[["mine","My builds"],["import","Import & backup"]].map(([k,l])=>'<button class="tab'+(SV_TAB===k?" on":"")+'" data-act="sv-tab" data-tab="'+k+'" aria-pressed="'+(SV_TAB===k)+'">'+l+'</button>').join("");
   const b=$("#svBody");
-  b.innerHTML=SV_TAB==="mine"?savesMineHTML():SV_TAB==="premades"?premadesHTML():importHTML();
+  b.innerHTML=SV_TAB==="mine"?savesMineHTML():importHTML();
   $$("#svBody .svthumb[data-img]").forEach(el=>{
     const ref=el.dataset.img;if(!ref)return;
     const set=v=>{if(v){el.style.backgroundImage='url("'+v+'")';el.textContent="";}};
@@ -815,7 +839,7 @@ function premadesHTML(){
     return '<div class="svrow"><div class="svthumb">'+(st.trees[0]?treeIco(tree(st.trees[0])):"")+'</div><div class="svinfo"><div class="svname">'+esc(p.name)+'</div><div class="svmeta">'+saveMeta(st)+'</div>'+(p.desc?'<p class="pmdesc">'+esc(p.desc)+'</p>':'')+'</div>'
       +'<div class="svacts"><button data-act="pm-load" data-id="'+esc(p.id)+'">Load</button><button data-act="pm-cmp" data-id="'+esc(p.id)+'">Compare</button></div></div>';
   }).join("")+'</div>':'<div class="svempty">No premades yet.</div>';
-  return h+'<p class="svnote" style="margin-top:12px">Loading a premade swaps in its trees, points and level. Name, title, rank and portrait stay.</p>'
+  return '<p class="svnote" style="margin-top:0">Loading a premade swaps in its trees, points and level. Name, title, rank and portrait stay.</p>'+h
     +'<h3>Add a premade</h3><p class="svnote">Set up a build, copy its entry, paste it into <code>data/premades.js</code> and write a description.</p><div class="row"><button data-act="pm-copy">Copy current build as a premade entry</button></div>';
 }
 function importHTML(){
@@ -864,7 +888,7 @@ function loadPremade(id){
   commitSoon.flush();
   const hadWork=equipped().length>0;
   loadBuildOnly(st);CURRENT_SAVE=null;MOVE=null;
-  closeDlg("saves");renderAll();commit();
+  closeDlg("premades");renderAll();commit();
   toast("Loaded premade: "+p.name,hadWork?{action:"Undo",fn:undo}:null);
 }
 function premadeEntry(){
@@ -963,7 +987,6 @@ function swapCompare(){
 }
 
 /* ================= share and export ================= */
-const inFrame=()=>{try{return window.top!==window.self;}catch(e){return true;}};
 const baseUrl=()=>location.href.split("#")[0];
 let LINK_N=0;
 function openShare(){
@@ -971,7 +994,6 @@ function openShare(){
   $("#shCode").value=code();
   const si=$("#shImg");si.checked=!!S.image&&PREFS.shImg;si.disabled=!S.image;si.parentElement.title=S.image?"":"Add a portrait first";
   $("#shFull").checked=!!PREFS.shFull;
-  $("#shFrame").hidden=!inFrame();
   openDlg("share");makeLink();
 }
 async function buildLink(withImg){
@@ -1139,13 +1161,14 @@ addEventListener("scroll",e=>{const t=e.target;if(!(t&&t.id==="gtip"))glHide();}
 addEventListener("resize",glHide);
 
 /* ================= events ================= */
-const REFOCUS=["tier","lock","move","slot","tree-toggle","tree-skills","all-skills","pk-cat","pk-card","pk-page","pk-expand","sv-tab","sv-ren"];
+const REFOCUS=["tier","tier-sk","lock","move","slot","tree-toggle","tree-skills","all-skills","pk-cat","pk-card","pk-page","pk-expand","sv-tab","sv-ren"];
 const focusKey=b=>REFOCUS.includes(b.dataset.act)?selFor(b):null;
 document.addEventListener("click",e=>{
   /* tooltip pin / unpin */
+  const wasPinned=!!GL_PIN;
   if(!(e.target.closest&&e.target.closest("#gtip"))){
     const tip=e.target.closest&&e.target.closest(TIP_SEL);
-    if(tip){e.preventDefault();if(GL_PIN===tip)glHide();else{glHide();GL_PIN=tip;tip.classList.add("on");glShow(tip);}return;}
+    if(tip&&!tip.dataset.act){e.preventDefault();if(GL_PIN===tip)glHide();else{glHide();GL_PIN=tip;tip.classList.add("on");glShow(tip);}return;}
     if(GL_PIN)glHide();
   }
   const b=e.target.closest&&e.target.closest("[data-act]");if(!b||b.disabled)return;
@@ -1155,9 +1178,10 @@ document.addEventListener("click",e=>{
     case "redo":redo();break;
     case "random":randomBuild();break;
     case "saves":openSaves();break;
+    case "premades":openPremades();break;
     case "compare":openCompare();break;
     case "share":openShare();break;
-    case "card":openCard();break;
+    case "card":if(wasPinned&&b.classList.contains("cclick"))break;openCard();break;
     case "reset":resetAll();break;
     case "portrait":$("#file").click();break;
     case "portrait-remove":setImage(null);$("#portrait").focus({preventScroll:true});toast("Portrait removed",{action:"Undo",fn:undo});break;
@@ -1165,6 +1189,7 @@ document.addEventListener("click",e=>{
     case "move":startMove(+b.dataset.slot);break;
     case "lock":{const i=+b.dataset.slot;LOCK[i]=!LOCK[i];renderSlots();break;}
     case "tier":setSpent(id,+b.dataset.t);break;
+    case "tier-sk":{const t=tree(id);if(!t)break;glHide();setSpent(id,tierTarget(t,+b.dataset.i));const n=$('.tstrip [data-act="tier-sk"][data-id="'+cssEsc(id)+'"][data-i="'+b.dataset.i+'"]');if(n&&n.matches(":hover"))tierPreview(n);break;}
     case "trim":trimToLevel();break;
     case "tree-toggle":toggleTree(id);break;
     case "tree-skills":setTreeSkills(id,b.dataset.v==="1");break;
@@ -1184,7 +1209,7 @@ document.addEventListener("click",e=>{
     case "sv-del":deleteSave(id);break;
     case "sv-ren":SV_RENAME=id;renderSaves();return;
     case "pm-load":loadPremade(id);break;
-    case "pm-cmp":{const p=PREMADES.find(x=>x.id===id);CB=premadeState(p);if(CB)CB.name=p.name;closeDlg("saves");openCompare();break;}
+    case "pm-cmp":{const p=PREMADES.find(x=>x.id===id);CB=premadeState(p);if(CB)CB.name=p.name;closeDlg("premades");openCompare(true);break;}
     case "pm-copy":copyText(premadeEntry(),"Premade entry copied: paste it into data/premades.js");break;
     case "imp-load":importText(false);break;
     case "imp-cmp":importText(true);break;
@@ -1241,6 +1266,11 @@ document.addEventListener("keydown",e=>{
   if(k==="z"&&!e.shiftKey){e.preventDefault();undo();}
   else if((k==="z"&&e.shiftKey)||k==="y"){e.preventDefault();redo();}
 });
+/* skill strip: preview on hover and keyboard focus */
+document.addEventListener("mouseover",e=>{const b=e.target.closest&&e.target.closest(".tskill");if(b)tierPreview(b);});
+document.addEventListener("mouseout",e=>{const s=e.target.closest&&e.target.closest(".tstrip");if(s&&!(e.relatedTarget&&s.contains(e.relatedTarget)))tierPreviewEnd(s);});
+document.addEventListener("focusin",e=>{if(e.target.classList&&e.target.classList.contains("tskill"))tierPreview(e.target);});
+document.addEventListener("focusout",e=>{const s=e.target.closest&&e.target.closest(".tstrip");if(s&&!(e.relatedTarget&&s.contains(e.relatedTarget)))tierPreviewEnd(s);});
 /* expanded skill rows survive re-renders */
 document.addEventListener("toggle",e=>{const k=e.target.dataset&&e.target.dataset.sk;if(!k)return;e.target.open?OPEN.add(k):OPEN.delete(k);},true);
 
@@ -1317,7 +1347,7 @@ async function gcImages(){
   }catch(e){}
 }
 async function boot(){
-  $("#verLabel").textContent="v"+APP_VERSION.split(".")[0];$("#verFull").textContent="v"+APP_VERSION;
+  $("#verLabel").textContent="v"+APP_VERSION.split(".")[0];
   try{await migrateV1();}catch(e){}
   loadHist();
   const h=location.hash.slice(1);

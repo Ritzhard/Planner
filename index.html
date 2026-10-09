@@ -25,12 +25,13 @@
 <body>
 
 <header>
-  <h1><img src="img/favicon.svg" alt="" class="logo" width="24" height="24"><span class="name">Build Planner</span><span class="ver" id="verLabel">v2</span></h1>
+  <h1><span class="name">Build Planner</span><span class="ver" id="verLabel">v2</span></h1>
   <nav class="actions" aria-label="Build actions">
     <button id="btnUndo" data-act="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><span class="ico" aria-hidden="true">↶</span></button>
     <button id="btnRedo" data-act="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><span class="ico" aria-hidden="true">↷</span></button>
     <button data-act="random" title="Random build (locked slots are kept)" aria-label="Random build"><span class="ico" aria-hidden="true">🎲</span><span class="lbl"> Random</span></button>
-    <button data-act="saves" title="Save, load, premades and import" aria-label="Saves"><span class="ico" aria-hidden="true">💾</span><span class="lbl"> Saves</span></button>
+    <button data-act="saves" title="Save, load and import" aria-label="Saves"><span class="ico" aria-hidden="true">💾</span><span class="lbl"> Saves</span></button>
+    <button data-act="premades" title="Premade builds" aria-label="Premades"><span class="ico" aria-hidden="true">📜</span><span class="lbl"> Premades</span></button>
     <button data-act="compare" title="Compare two builds" aria-label="Compare"><span class="ico" aria-hidden="true">⇄</span><span class="lbl"> Compare</span></button>
     <button data-act="share" title="Share link, text or card image" aria-label="Share"><span class="ico" aria-hidden="true">🔗</span><span class="lbl"> Share</span></button>
     <button id="btnCard" data-act="card" title="Character card" aria-label="Character card"><span class="ico" aria-hidden="true">🪪</span><span class="lbl"> Card</span></button>
@@ -69,7 +70,7 @@
   <aside id="summary" aria-label="Character card"></aside>
 </main>
 
-<footer>Build Planner <span id="verFull">v2</span> · Your build and saves stay in this browser · Ctrl+Z / Ctrl+Shift+Z to undo and redo</footer>
+<footer>Ctrl+Z / Ctrl+Shift+Z to undo and redo</footer>
 
 <!-- tree picker -->
 <dialog id="picker" class="modal" aria-labelledby="pkTitle">
@@ -94,11 +95,18 @@
   </div>
 </dialog>
 
+<!-- premades -->
+<dialog id="premades" class="modal" aria-labelledby="pmTitle">
+  <div class="box" style="max-width:680px">
+    <div class="boxhead"><h2 id="pmTitle">Premades</h2><button class="xbtn" data-act="close" aria-label="Close" title="Close">✕</button></div>
+    <div id="pmBody"></div>
+  </div>
+</dialog>
+
 <!-- share and export -->
 <dialog id="share" class="modal" aria-labelledby="shTitle">
   <div class="box" style="max-width:640px">
     <div class="boxhead"><h2 id="shTitle">Share &amp; export</h2><button class="xbtn" data-act="close" aria-label="Close" title="Close">✕</button></div>
-    <p id="shFrame" class="nhint" hidden>This preview runs inside a frame, so links copied here won't open the build. They work once the page is hosted on its own, like on GitHub Pages.</p>
     <h3 style="margin-top:0">Link</h3>
     <label class="chk"><input type="checkbox" id="shImg"> Include portrait</label>
     <div class="row"><input id="shUrl" readonly style="flex:1" aria-label="Share link"><button class="primary" data-act="copy-link">Copy link</button></div>
@@ -106,7 +114,6 @@
     <div class="row"><input id="shCode" readonly style="flex:1" aria-label="Build code"><button data-act="copy-code">Copy code</button></div>
     <div class="shsec">
       <h3>Text</h3>
-      <p class="nhint">Markdown that works in Rentry and Discord, with a link back to the build.</p>
       <label class="chk"><input type="checkbox" id="shFull"> Include skill descriptions</label>
       <div class="row"><button data-act="copy-text">Copy as text</button></div>
     </div>

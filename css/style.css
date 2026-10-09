@@ -36,7 +36,6 @@ textarea{width:100%;min-height:70px;margin:6px 0;resize:vertical}
 /* ---------- header ---------- */
 header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 18px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
 h1{font-size:18px;margin:0;display:flex;align-items:center;gap:8px;white-space:nowrap}
-h1 .logo{width:24px;height:24px;flex:none}
 h1 .ver{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:1px 6px}
 .actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .actions button{white-space:nowrap}
@@ -44,7 +43,7 @@ h1 .ver{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(-
 #btnCard{display:none}
 @media(max-width:960px){#btnCard{display:inline-block}}
 /* below ~920 px the labelled buttons would wrap to a second row: icons only (names stay as tooltips) */
-@media(max-width:920px){
+@media(max-width:1010px){
   .actions{flex-wrap:nowrap;overflow-x:auto;gap:4px;scrollbar-width:none}
   .actions::-webkit-scrollbar{display:none}
   .actions button,.actions #btnCard{width:34px;height:34px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex:none}
@@ -129,10 +128,27 @@ footer a{color:var(--muted)}
 .thinfo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;flex:1;min-width:0}
 .chev{margin-left:auto;flex:none;font-size:18px;line-height:1;color:var(--muted);transition:transform .15s}
 .chev.up{transform:rotate(180deg)}
-.notches{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
-.notch{min-width:40px;padding:6px 8px}
-.notch.act{background:#3a4258;border-color:var(--deco)}
-.notch.no{opacity:.35}
+/* skill strip: click a skill to invest up to it */
+.tbar{height:4px;background:var(--line);border-radius:2px;margin:0 0 12px;overflow:hidden}
+.tbar i{display:block;height:100%;transition:width .15s}
+.tstrip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}
+.tskill{cursor:pointer;padding-top:2px}
+.tsimg{position:relative;display:block;width:min(100%,64px);margin:0 auto}
+.tskill .skimg{width:100%;transition:filter .12s,box-shadow .12s,transform .12s}
+.tskill:hover .skimg{transform:translateY(-2px)}
+.tpt{position:absolute;left:-4px;top:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:var(--panel2);border:1px solid var(--line2);font-size:11px;font-weight:700;line-height:18px;text-align:center;color:var(--text2)}
+.tskill:not(.locked) .tpt{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.tskill.top .skimg{box-shadow:0 0 0 2px var(--text2)}
+.tskill.no{cursor:not-allowed}
+.tskill.no .tpt{color:#ff8a8d;border-color:rgba(229,72,77,.6)}
+.tstrip .tskill.pv-add .skimg{filter:none;box-shadow:0 0 0 2px var(--accent)}
+.tstrip .tskill.pv-add .cname{color:var(--text2)}
+.tstrip .tskill.pv-rem .skimg{filter:grayscale(1) brightness(.45);box-shadow:0 0 0 2px var(--warn)}
+.tskill.pv-rem .tpt{background:var(--warn);border-color:var(--warn)}
+.thint{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:4px}
+.thint .nhint{margin:0}
+.thint .over{color:var(--warn)}
+@media(max-width:560px){.tstrip{gap:4px}.tstrip .cname{display:none}.tpt{min-width:17px;height:17px;line-height:15px;font-size:10px;left:-3px;top:-3px}}
 .sktools{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:8px}
 .skempty{color:var(--faint);font-size:13px;padding:6px 2px}
 details.sk{border:1px solid var(--line);border-radius:8px;margin:6px 0;background:var(--bg)}
@@ -186,6 +202,8 @@ details.sk .body ul{margin:6px 0 0;padding-left:20px}
 .ep{color:var(--muted);font-style:italic}
 .cpop{position:absolute;top:10px;right:10px;padding:2px 8px;font-size:15px;line-height:1.3}
 .ccard{position:relative}
+.ccard.cclick{cursor:pointer;border-radius:8px;margin:-6px;padding:6px;transition:background .15s}
+.ccard.cclick:hover{background:rgba(255,255,255,.025)}
 .chead{display:flex;gap:12px;align-items:center;padding-right:34px}
 .cport{flex:none;width:64px;height:64px;border-radius:10px;background:var(--line) center/cover no-repeat;border:1px solid var(--line2)}
 .cport.empty{display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--muted)}
@@ -376,6 +394,12 @@ dialog.modal::backdrop{background:rgba(5,7,10,.75)}
 .ccol{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--bg);font-size:13px}
 .cmpcard{--isz:max(34px,min(64px,calc((100vh - 610px) / 3)))}
 .cmpcard .chead{padding-right:0}
+/* both columns share row heights, so the trees line up side by side */
+@supports (grid-template-rows:subgrid){@media(min-width:701px){
+  .cgrid.cmpcard{grid-template-rows:repeat(4,auto)}
+  .cmpcard .ccol{display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:0;align-content:start}
+  .cmpcard .ccol>.chead{align-self:start}
+}}
 .cmpcard .cport{width:56px;height:56px}
 .cmpcard .cid h3{font-size:17px}
 .cmpcard .ctree{margin-top:10px;padding-top:8px}
