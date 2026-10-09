@@ -20,5 +20,8 @@ window.BP = window.BP || {};
 BP.PREMADES = [
 {id:"ember-fist", name:"Ember Fist", level:33,
  desc:"Every punch sets the target alight. Burn feeds Fervor and Opening for attack speed and keeps Opportunist's bonus damage switched on, Combo builds toward a big Suplex, and Twist the Knife makes the Burn tick early.",
- trees:[["brawler",21],["pyromancer",6],["opportunist",6]]}
+ trees:[["brawler",21],["pyromancer",6],["opportunist",6]]},
+ {id:"mash", name:"Mash", level:67,
+ desc:" Play around Aegis defense conversion mechanic.",
+ trees:[["aegis",33],["madness",21],["gambler",11]]},
 ];
